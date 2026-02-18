@@ -1,4 +1,4 @@
-c// backend/src/controllers/workouts.controller.js
+// backend/src/controllers/workouts.controller.js
 const pool = require("../db/pool");
 
 // helper: only allow certain sort columns (prevents SQL injection)

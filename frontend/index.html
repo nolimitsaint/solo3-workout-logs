@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workout Logs - Project 3</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <h1>Workout Collection Manager</h1>
+
+  <div id="app">
+
+  <!-- ===================== -->
+  <!--        STATS          -->
+  <!-- ===================== -->
+  <section>
+    <h2>Statistics</h2>
+    <div id="stats" class="stats"></div>
+  </section>
+
+  <hr />
+
+  <!-- ===================== -->
+  <!--      ADD / EDIT       -->
+  <!-- ===================== -->
+  <section>
+    <h2>Add / Edit Workout</h2>
+
+    <form id="workoutForm">
+      <label>
+        Date:
+        <input type="date" id="workout_date" required />
+      </label>
+
+      <label>
+        Title:
+        <input type="text" id="title" placeholder="Push Day" required />
+      </label>
+
+      <label>
+        Category:
+        <input type="text" id="category" placeholder="Strength" required />
+      </label>
+
+      <label>
+        Duration (minutes):
+        <input type="number" id="duration_min" min="1" max="600" required />
+      </label>
+
+      <label style="grid-column: 1 / -1;">
+        Notes:
+        <input type="text" id="notes" placeholder="Bench + triceps" />
+      </label>
+
+      <label style="grid-column: 1 / -1;">
+        Workout Image (optional):
+        <input type="file" id="image" accept="image/*" />
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" id="submitBtn">Add Workout</button>
+        <button type="button" id="cancelBtn" style="display:none;">Cancel Edit</button>
+      </div>
+
+      <p id="formError" class="error" style="display:none;"></p>
+    </form>
+  </section>
+
+  <hr />
+
+  <!-- ===================== -->
+  <!--       FILTERS         -->
+  <!-- ===================== -->
+  <section>
+    <h2>Browse Workouts</h2>
+
+    <div class="pager" style="flex-wrap:wrap;">
+      <label>
+        Search:
+        <input id="search" placeholder="title/category/notes" />
+      </label>
+
+      <label>
+        Sort:
+        <select id="sort">
+          <option value="workout_date">Date</option>
+          <option value="created_at">Created</option>
+          <option value="duration_min">Duration</option>
+          <option value="title">Title</option>
+          <option value="category">Category</option>
+        </select>
+      </label>
+
+      <label>
+        Order:
+        <select id="order">
+          <option value="desc">Descending</option>
+          <option value="asc">Ascending</option>
+        </select>
+      </label>
+
+      <label>
+        Page size:
+        <select id="pageSize">
+          <option>5</option>
+          <option selected>10</option>
+          <option>20</option>
+          <option>50</option>
+        </select>
+      </label>
+
+      <button id="applyFilters" type="button">Apply</button>
+    </div>
+  </section>
+
+  <hr />
+
+  <!-- ===================== -->
+  <!--        LIST           -->
+  <!-- ===================== -->
+  <section>
+    <div id="list"></div>
+  </section>
+
+  <!-- ===================== -->
+  <!--        PAGER          -->
+  <!-- ===================== -->
+  <div class="pager">
+    <button id="prevPage">Previous</button>
+    <span id="pageInfo">Page 1</span>
+    <button id="nextPage">Next</button>
+  </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

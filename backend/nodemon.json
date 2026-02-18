@@ -1,0 +1,8 @@
+{
+  "watch": ["src"],
+  "ignore": ["**/uploads/**", "node_modules/**", ".git/**", ".env", ".DS_Store", "*.log"],
+  "ext": "js,json",
+  "delay": 500,
+  "legacyWatch": true
+}
+

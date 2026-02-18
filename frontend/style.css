@@ -1,0 +1,268 @@
+/* =========================================
+   Base
+========================================= */
+:root {
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --border: rgba(0, 0, 0, 0.10);
+  --text: #111827;
+  --muted: #6b7280;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 28px 16px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+
+  /* Simple background (you can swap later) */
+  background: radial-gradient(circle at top, #e5e7eb 0%, #cbd5e1 45%, #b6c0d1 100%);
+  min-height: 100vh;
+}
+
+/* =========================================
+   Title
+========================================= */
+h1 {
+  text-align: center;
+  margin: 0 0 18px;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* =========================================
+   Main App Card
+========================================= */
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+/* =========================================
+   Sections
+========================================= */
+section {
+  padding: 10px 0;
+}
+
+h2 {
+  margin: 8px 0 12px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* =========================================
+   Form
+========================================= */
+form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  outline: none;
+  font-size: 14px;
+  background: white;
+}
+
+input:focus {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: #111827;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.04s ease, opacity 0.2s ease;
+}
+
+button:hover {
+  opacity: 0.92;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+#cancelBtn {
+  background: white;
+  color: var(--text);
+}
+
+/* error message under form */
+.error {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: #991b1b;
+  font-weight: 700;
+}
+
+/* =========================================
+   Stats Cards
+========================================= */
+#stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 14px;
+  background: white;
+}
+
+.stat-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.stat-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+/* =========================================
+   Pager
+========================================= */
+.pager {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 8px 0 12px;
+}
+
+.pager button {
+  background: white;
+  color: var(--text);
+}
+
+#pageInfo {
+  font-weight: 800;
+  color: var(--muted);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   Table
+========================================= */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+}
+
+thead th {
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+tbody td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  vertical-align: middle;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Actions buttons inside table */
+td button {
+  background: white;
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+td button.deleteBtn {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* =========================================
+   Mobile
+========================================= */
+@media (max-width: 700px) {
+  h1 {
+    font-size: 30px;
+  }
+
+  #app {
+    padding: 14px;
+  }
+
+  form {
+    grid-template-columns: 1fr;
+  }
+
+  #stats {
+    grid-template-columns: 1fr;
+  }
+
+  .pager {
+    justify-content: space-between;
+  }
+}

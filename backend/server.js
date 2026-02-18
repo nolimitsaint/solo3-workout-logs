@@ -1,16 +1,16 @@
 console.log("Server file loaded");
 
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-require("dotenv").config();
 
 const app = express();
 
-// ✅ FIX: allow images/files to be used by your frontend on a different port (localhost:5500)
+// allow images/files to be used by your frontend on a different domain/port
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -21,7 +21,6 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
 
-// CORS for local dev + later your domain
 app.use(
   cors({
     origin: true,
@@ -41,31 +40,32 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true, message: "Backend is running" });
 });
 
+// Load Postgres pool
 let pool;
 try {
   pool = require("./src/db/pool");
   console.log("Pool loaded successfully");
 } catch (err) {
-  console.error("Failed to load DB pool:", err && err.stack ? err.stack : err);
+  console.error("Failed to load DB pool:", err?.stack || err);
   process.exit(1);
 }
 
-// Test connection on startup
-pool.getConnection()
-  .then((conn) => {
+// ✅ Postgres connection test on startup (NO getConnection)
+pool
+  .query("SELECT 1")
+  .then(() => {
     console.log("✓ Database connected");
-    conn.release();
   })
   .catch((err) => {
-    console.error("✗ Database connection failed:", err.code);
-    console.log("Make sure MySQL is running and the database exists.");
+    console.error("✗ Database connection failed:", err.message);
     process.exit(1);
   });
 
+// ✅ DB health endpoint (pg returns result.rows)
 app.get("/api/db-health", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT 1 AS ok");
-    res.json({ ok: true, db: rows[0] });
+    const result = await pool.query("SELECT 1 AS ok");
+    res.json({ ok: true, db: result.rows[0] });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

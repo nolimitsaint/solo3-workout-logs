@@ -1,10 +1,11 @@
-// backend/src/db/pool.js  (Postgres / Render)
+// backend/src/db/pool.js
 const { Pool } = require("pg");
+
+const isRender = !!process.env.DATABASE_URL;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Render Postgres requires SSL
-  ssl: { rejectUnauthorized: false },
+  ssl: isRender ? { rejectUnauthorized: false } : false,
 });
 
 module.exports = pool;

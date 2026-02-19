@@ -1,21 +1,20 @@
-// seed.js
+// seed.js (POSTGRES + IMAGES)
 require("dotenv").config();
-const mysql = require("mysql2/promise");
+const pool = require("./src/db/pool");
 
 const workoutCategories = [
   "Cardio", "Strength", "Yoga", "HIIT", "Pilates",
-  "Crossfit", "Running", "Swimming", "Cycling", "Walking",
+  "Crossfit", "Running", "Swimming", "Cycling", "Walking"
 ];
 
 const workoutTitles = [
-  "Morning Run", "Evening Yoga Flow", "Full Body Strength", "HIIT Blast",
-  "Core Crusher", "Leg Day", "Upper Body Pump", "Cardio Kickboxing",
-  "Sunrise Stretch", "Powerlifting Session", "Interval Training",
-  "Recovery Yoga", "Bootcamp Workout", "Spin Class", "Pool Laps",
-  "Trail Run", "Bodyweight Circuit", "Kettlebell Workout", "Pilates Mat",
-  "Boxing Training", "Mountain Bike Ride", "Rowing Machine", "Stair Climber",
-  "Dance Cardio", "TRX Session", "Barre Class", "Meditation & Stretch",
-  "Functional Training", "Olympic Lifting", "Endurance Ride",
+  "Morning Run", "Evening Yoga Flow", "Full Body Strength",
+  "HIIT Blast", "Core Crusher", "Leg Day", "Upper Body Pump",
+  "Cardio Kickboxing", "Powerlifting Session", "Interval Training",
+  "Recovery Yoga", "Bootcamp Workout", "Spin Class",
+  "Pool Laps", "Trail Run", "Kettlebell Workout",
+  "Boxing Training", "Mountain Bike Ride", "Rowing Machine",
+  "Functional Training"
 ];
 
 const imageUrls = [
@@ -28,7 +27,7 @@ const imageUrls = [
   "https://images.unsplash.com/photo-1554284126-aa88f22d8b74?w=400",
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
   "https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=400",
-  "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400",
+  "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400"
 ];
 
 function randomDate(start, end) {
@@ -40,58 +39,39 @@ function randomInt(min, max) {
 }
 
 async function seedDatabase() {
-  const pool = mysql.createPool({
-    host: process.env.DB_HOST || "localhost",
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "",   // ✅ FIXED (was DB_PASS)
-    database: process.env.DB_NAME || "solo3_workouts",
-    connectionLimit: 1,
-  });
-
   try {
-    console.log("Starting database seed...");
-
-    // Clear existing data
+    console.log("Clearing old data...");
     await pool.query("DELETE FROM workouts");
-    await pool.query("ALTER TABLE workouts AUTO_INCREMENT = 1");
-    console.log("Cleared existing workouts");
 
-    // Generate 40 workouts (more than 30 to be safe)
-    const workouts = [];
-    const startDate = new Date("2024-01-01");
-    const endDate = new Date("2025-12-31");
+    console.log("Seeding Postgres database with images...");
 
     for (let i = 0; i < 40; i++) {
-      const title = workoutTitles[i % workoutTitles.length];
-      const category = workoutCategories[Math.floor(Math.random() * workoutCategories.length)];
-      const workoutDate = randomDate(startDate, endDate).toISOString().split("T")[0];
-      const durationMin = randomInt(15, 120);
-      const notes = `Great ${category.toLowerCase()} workout! ${
-        i % 3 === 0 ? "Felt amazing!" : i % 3 === 1 ? "Pushed hard today." : "Nice recovery session."
-      }`;
-      const imageUrl = imageUrls[Math.floor(Math.random() * imageUrls.length)];
+      const title = workoutTitles[randomInt(0, workoutTitles.length - 1)];
+      const category = workoutCategories[randomInt(0, workoutCategories.length - 1)];
+      const workout_date = randomDate(new Date(2024, 0, 1), new Date());
+      const duration = randomInt(20, 90);
+      const image = imageUrls[randomInt(0, imageUrls.length - 1)];
 
-      workouts.push([title, workoutDate, category, durationMin, notes, imageUrl]);
+      await pool.query(
+        `INSERT INTO workouts 
+         (title, workout_date, category, duration_min, notes, image_url)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          title,
+          workout_date,
+          category,
+          duration,
+          "Seeded workout entry",
+          image
+        ]
+      );
     }
 
-    // Insert all workouts
-    const query = `
-      INSERT INTO workouts (title, workout_date, category, duration_min, notes, image_url)
-      VALUES ?
-    `;
-
-    const [result] = await pool.query(query, [workouts]);
-    console.log(`✅ Successfully seeded ${result.affectedRows} workouts!`);
-
-    const [sample] = await pool.query("SELECT id, title, category, duration_min, workout_date FROM workouts LIMIT 5");
-    console.log("\nSample workouts:");
-    console.table(sample);
+    console.log("✅ Inserted 40 workouts with images");
+    process.exit();
   } catch (err) {
-    console.error("Error seeding database:", err);
-    process.exitCode = 1;
-  } finally {
-    await pool.end();
+    console.error("Seed failed:", err);
+    process.exit(1);
   }
 }
 

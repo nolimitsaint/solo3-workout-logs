@@ -23,8 +23,16 @@ const app = express();
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://plus.unsplash.com"],
+      },
+    },
   })
 );
+
 
 app.use(morgan("dev"));
 app.use(express.json());

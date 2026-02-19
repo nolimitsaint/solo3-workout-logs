@@ -28,21 +28,18 @@ app.use(
   })
 );
 
-/**
- * ✅ Serve uploads (images)
- * backend/uploads/... => available at /uploads/...
- */
+// ✅ paths
+// If server.js is in /backend/server.js and frontend folder is /frontend
+const FRONTEND_DIR = path.join(__dirname, "../frontend");
+const FRONTEND_INDEX = path.join(FRONTEND_DIR, "index.html");
+
+// Serve uploaded files (adjust if your uploads folder lives somewhere else)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/**
- * ✅ Serve frontend static files
- * frontend/index.html, frontend/app.js, frontend/style.css
- */
-app.use(express.static(path.join(__dirname, "../frontend")));
+// Serve frontend static files (css/js)
+app.use(express.static(FRONTEND_DIR));
 
-/**
- * ✅ API routes
- */
+// API routes
 const workoutsRoutes = require("./src/routes/workouts.routes");
 app.use("/api/workouts", workoutsRoutes);
 
@@ -61,7 +58,7 @@ try {
   process.exit(1);
 }
 
-// ✅ DB health endpoint
+// Optional DB health endpoint
 app.get("/api/db-health", async (req, res) => {
   try {
     const result = await pool.query("SELECT 1 AS ok");
@@ -71,14 +68,24 @@ app.get("/api/db-health", async (req, res) => {
   }
 });
 
-/**
- * ✅ Catch-all: serve frontend for any NON-API route
- * This makes refresh work on Render.
- */
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) return next();
-  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+// ✅ Serve the frontend for ONLY the site root (no wildcards)
+app.get("/", (req, res) => {
+  res.sendFile(FRONTEND_INDEX);
 });
+
+// ✅ Final 404 handler (no "*" and no "**")
+app.use((req, res) => {
+  // If you want the frontend to handle unknown routes, uncomment this:
+  // if (!req.path.startsWith("/api") && !req.path.startsWith("/uploads")) {
+  //   return res.sendFile(FRONTEND_INDEX);
+  // }
+
+  res.status(404).json({ ok: false, error: "Route not found" });
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`API running on port ${PORT}`));
+
 
 
  

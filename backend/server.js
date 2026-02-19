@@ -10,7 +10,7 @@ const path = require("path");
 
 const app = express();
 
-// allow images/files to be used by your frontend on a different domain/port
+// Security headers (allow images/files to be used by frontend)
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -28,10 +28,21 @@ app.use(
   })
 );
 
-// Serve uploaded files
+/**
+ * ✅ Serve uploads (images)
+ * backend/uploads/... => available at /uploads/...
+ */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// routes AFTER middleware
+/**
+ * ✅ Serve frontend static files
+ * frontend/index.html, frontend/app.js, frontend/style.css
+ */
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+/**
+ * ✅ API routes
+ */
 const workoutsRoutes = require("./src/routes/workouts.routes");
 app.use("/api/workouts", workoutsRoutes);
 
@@ -50,18 +61,7 @@ try {
   process.exit(1);
 }
 
-// ✅ Postgres connection test on startup (NO getConnection)
-pool
-  .query("SELECT 1")
-  .then(() => {
-    console.log("✓ Database connected");
-  })
-  .catch((err) => {
-    console.error("✗ Database connection failed:", err.message);
-    process.exit(1);
-  });
-
-// ✅ DB health endpoint (pg returns result.rows)
+// ✅ DB health endpoint
 app.get("/api/db-health", async (req, res) => {
   try {
     const result = await pool.query("SELECT 1 AS ok");
@@ -71,13 +71,14 @@ app.get("/api/db-health", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
-
-app.listen(PORT, () => {
-  console.log(`API running on port ${PORT}`);
+/**
+ * ✅ Catch-all: serve frontend for any NON-API route
+ * This makes refresh work on Render.
+ */
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) return next();
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
-// 404 handler (keep last)
-app.use((req, res) => {
-  res.status(404).json({ ok: false, error: "Route not found" });
-});
+
+ 

@@ -4,15 +4,16 @@
  */
 
 // ====== CONFIGURATION ======
-let API_BASE = "";
+const IS_LOCAL =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1" ||
+  window.location.protocol === "file:";
 
-if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-  API_BASE = "http://localhost:4000";
-} else {
-  // Set this later for Render:
-  // API_BASE = "https://your-backend.onrender.com";
-  API_BASE = "";
-}
+// ✅ Set your backend base URL here (Render)
+const PROD_API = "https://solo3-workout-logs-node.onrender.com";
+
+// If running locally: backend at localhost:4000
+const API_BASE = IS_LOCAL ? "http://localhost:4000" : PROD_API;
 
 // ====== GLOBAL STATE ======
 let currentPage = 1;
@@ -72,10 +73,10 @@ function setFormValues(w) {
 }
 
 function getFiltersFromUI() {
-  searchText = document.getElementById("search").value.trim();
-  sortBy = document.getElementById("sort").value;
-  sortOrder = document.getElementById("order").value;
-  pageSize = Number(document.getElementById("pageSize").value) || 10;
+  searchText = (document.getElementById("search")?.value || "").trim();
+  sortBy = document.getElementById("sort")?.value || "workout_date";
+  sortOrder = document.getElementById("order")?.value || "desc";
+  pageSize = Number(document.getElementById("pageSize")?.value) || 10;
   setCookie("pageSize", pageSize);
 }
 
@@ -89,39 +90,34 @@ function updatePagerUI() {
   if (next) next.disabled = currentPage >= maxPage;
 }
 
-function renderStats(total, avgDuration) {
+function renderStatsFromApi(stats) {
   const statsEl = document.getElementById("stats");
   if (!statsEl) return;
-
-  const categorySet = new Set();
-  document.querySelectorAll("tbody td:nth-child(3)").forEach((td) => {
-    if (td.textContent) categorySet.add(td.textContent);
-  });
 
   statsEl.innerHTML = `
     <div class="stat-card">
       <span class="stat-label">Total Workouts</span>
-      <span class="stat-value">${total}</span>
+      <span class="stat-value">${stats.totalRecords}</span>
     </div>
 
     <div class="stat-card">
       <span class="stat-label">Page Size</span>
-      <span class="stat-value">${pageSize}</span>
+      <span class="stat-value">${stats.currentPageSize}</span>
     </div>
 
     <div class="stat-card">
-      <span class="stat-label">Categories (this page)</span>
-      <span class="stat-value">${categorySet.size}</span>
+      <span class="stat-label">Categories</span>
+      <span class="stat-value">${stats.categoryCount}</span>
     </div>
 
     <div class="stat-card">
       <span class="stat-label">Avg Duration (mins)</span>
-      <span class="stat-value">${avgDuration.toFixed(1)}</span>
+      <span class="stat-value">${stats.avgDuration}</span>
     </div>
   `;
 }
 
-// ====== IMAGE FALLBACK (REQUIRED FIX) ======
+// ====== IMAGE FALLBACK ======
 function imagePlaceholderDataUri() {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
@@ -134,10 +130,8 @@ function imagePlaceholderDataUri() {
 
 function buildImageUrl(r) {
   if (!r.image_url) return "";
-
   const base = r.image_url.startsWith("http") ? r.image_url : `${API_BASE}${r.image_url}`;
 
-  // cache-buster so deleted/replaced files don’t “stick”
   const version =
     (r.updated_at ? String(r.updated_at) : "") ||
     (r.created_at ? String(r.created_at) : "") ||
@@ -224,7 +218,6 @@ function renderList(rows) {
     </table>
   `;
 
-  // 🔥 This is what makes “404 image -> placeholder” work
   const thumbs = listEl.querySelectorAll("img.workout-thumb[data-fallback='1']");
   thumbs.forEach((img) => {
     img.addEventListener("error", () => {
@@ -243,22 +236,26 @@ function renderList(rows) {
 // ====== API HELPERS ======
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
+    // cookies aren't required for your API, but keeping this is fine
     credentials: "include",
     ...options,
     headers: {
-      "Content-Type": "application/json",
       ...(options.headers || {}),
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
     },
+    body: options.body,
   });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Request failed (${res.status})`);
-  }
+  const data = await res.json().catch(() => ({}));
 
-  const data = await res.json();
-  if (!data.ok && data.error) throw new Error(data.error);
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  if (data && data.ok === false && data.error) throw new Error(data.error);
   return data;
+}
+
+async function fetchStats() {
+  const data = await apiFetch(`${API_BASE}/api/workouts/stats`);
+  return data.stats;
 }
 
 async function fetchPage(page) {
@@ -272,41 +269,27 @@ async function fetchPage(page) {
     </div>
   `;
 
-  try {
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    params.set("pageSize", String(pageSize));
-    if (searchText) params.set("search", searchText);
-    if (sortBy) params.set("sort", sortBy);
-    if (sortOrder) params.set("order", sortOrder);
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
+  if (searchText) params.set("search", searchText);
+  if (sortBy) params.set("sort", sortBy);
+  if (sortOrder) params.set("order", sortOrder);
 
-    const data = await apiFetch(`${API_BASE}/api/workouts?${params.toString()}`);
+  const data = await apiFetch(`${API_BASE}/api/workouts?${params.toString()}`);
 
-    totalRecords = data.total;
-    currentPage = data.page;
+  totalRecords = data.total;
+  currentPage = data.page;
 
-    renderList(data.results);
+  renderList(data.results);
 
-    const avg =
-      data.results.length === 0
-        ? 0
-        : data.results.reduce((sum, r) => sum + Number(r.duration_min || 0), 0) /
-          data.results.length;
+  const stats = await fetchStats();
+  renderStatsFromApi(stats);
 
-    renderStats(totalRecords, avg);
-    updatePagerUI();
+  updatePagerUI();
 
-    if (data.results.length === 0 && searchText) showError(`No workouts found matching "${searchText}"`);
-    else showError("");
-  } catch (err) {
-    listEl.innerHTML = `
-      <div style="text-align:center; padding:60px 20px; background:white; border-radius:14px; border:1px solid rgba(239,68,68,0.2);">
-        <p style="color:#ef4444; margin:16px 0 8px;">⚠️ Failed to load workouts</p>
-        <p style="color:#6b7280; font-size:14px; margin-bottom:16px;">${err.message}</p>
-        <button onclick="location.reload()" style="background:#111827; color:white; padding:8px 16px; border:none; border-radius:8px; cursor:pointer;">Retry</button>
-      </div>
-    `;
-  }
+  if (data.results.length === 0 && searchText) showError(`No workouts found matching "${searchText}"`);
+  else showError("");
 }
 
 async function uploadImage(workoutId, file) {
@@ -319,7 +302,10 @@ async function uploadImage(workoutId, file) {
     body: fd,
   });
 
-  if (!res.ok) throw new Error("Image upload failed");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Image upload failed");
+  }
   const data = await res.json();
   return data.workout;
 }
@@ -391,11 +377,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("list").addEventListener("click", async (e) => {
+  document.getElementById("list")?.addEventListener("click", async (e) => {
     const delBtn = e.target.closest(".deleteBtn");
     if (delBtn) {
       const id = Number(delBtn.dataset.id);
-      if (!confirm("Are you sure you want to delete this workout? This action cannot be undone.")) return;
+      if (!confirm("Delete this workout?")) return;
 
       try {
         await apiFetch(`${API_BASE}/api/workouts/${id}`, { method: "DELETE" });
@@ -403,7 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (currentPage > maxPageAfter) currentPage = maxPageAfter;
         await fetchPage(currentPage);
       } catch (err) {
-        alert(err.message || "Delete failed. Please try again.");
+        alert(err.message || "Delete failed.");
       }
       return;
     }
@@ -429,26 +415,26 @@ document.addEventListener("DOMContentLoaded", () => {
         setEditMode(true);
         document.querySelector("h2")?.scrollIntoView({ behavior: "smooth" });
       } catch (err) {
-        alert(err.message || "Could not load workout for editing.");
+        alert(err.message || "Could not load workout.");
       }
     }
   });
 
-  document.getElementById("cancelBtn").addEventListener("click", () => {
+  document.getElementById("cancelBtn")?.addEventListener("click", () => {
     editingId = null;
     setEditMode(false);
     form.reset();
     showError("");
   });
 
-  document.getElementById("prevPage").addEventListener("click", async () => {
+  document.getElementById("prevPage")?.addEventListener("click", async () => {
     if (currentPage > 1) {
       currentPage--;
       await fetchPage(currentPage);
     }
   });
 
-  document.getElementById("nextPage").addEventListener("click", async () => {
+  document.getElementById("nextPage")?.addEventListener("click", async () => {
     const maxPage = Math.max(1, Math.ceil(totalRecords / pageSize));
     if (currentPage < maxPage) {
       currentPage++;
@@ -456,20 +442,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("applyFilters").addEventListener("click", async () => {
+  document.getElementById("applyFilters")?.addEventListener("click", async () => {
     getFiltersFromUI();
     currentPage = 1;
     await fetchPage(currentPage);
   });
 
-  document.getElementById("pageSize").addEventListener("change", async (e) => {
-    pageSize = Number(e.target.value);
+  document.getElementById("pageSize")?.addEventListener("change", async (e) => {
+    pageSize = Number(e.target.value) || 10;
     setCookie("pageSize", pageSize);
     currentPage = 1;
     await fetchPage(currentPage);
   });
 
-  document.getElementById("search").addEventListener("keypress", async (e) => {
+  document.getElementById("search")?.addEventListener("keypress", async (e) => {
     if (e.key === "Enter") {
       getFiltersFromUI();
       currentPage = 1;
@@ -478,12 +464,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // init selects
-  document.getElementById("sort").value = sortBy;
-  document.getElementById("order").value = sortOrder;
-  document.getElementById("pageSize").value = String(pageSize);
+  if (document.getElementById("sort")) document.getElementById("sort").value = sortBy;
+  if (document.getElementById("order")) document.getElementById("order").value = sortOrder;
+  if (document.getElementById("pageSize")) document.getElementById("pageSize").value = String(pageSize);
 
-  console.log("App initialized in development mode");
-  console.log("API Base:", API_BASE || "same origin");
+  console.log("API Base:", API_BASE);
 
-  fetchPage(currentPage);
+  fetchPage(currentPage).catch((err) => {
+    console.error(err);
+    showError(err.message || "Failed to load.");
+  });
 });

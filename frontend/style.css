@@ -129,6 +129,25 @@ button:active {
   color: var(--text);
 }
 
+textarea {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  outline: none;
+  font-size: 14px;
+  background: white;
+  resize: vertical;
+  font-family: inherit;
+}
+
+textarea:focus {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+
 /* error message under form */
 .error {
   grid-column: 1 / -1;

@@ -30,6 +30,24 @@ const imageUrls = [
   "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400"
 ];
 
+const noteTemplates = [
+  "Warm-up: 5 min cardio. Focused on controlled tempo.",
+  "Kept rest between 60–90 seconds. Felt strong today.",
+  "Increased weight slightly from last week.",
+  "Focused on full range of motion and clean reps.",
+  "Supersets today. Great pump by the final set.",
+  "Interval training: 30s hard / 90s easy x 8 rounds.",
+  "Core finisher added at the end of session.",
+  "Deload session. Lighter weight, perfect form.",
+  "Steady-state cardio. Maintained consistent pace.",
+  "Long session. Hydration made a big difference.",
+  "Tried a new variation today — felt smoother.",
+  "Tempo work: 3 seconds down, 1 second up.",
+  "Mobility work included post-session stretch.",
+  "PR attempt day — solid progress.",
+  "Recovery-focused workout. Light but effective."
+];
+
 function randomDate(start, end) {
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }

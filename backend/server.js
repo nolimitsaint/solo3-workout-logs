@@ -96,5 +96,8 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`API running on port ${PORT}`));
 
 
-
+// 404 handler (keep last)
+app.use((req, res) => {
+  res.status(404).json({ ok: false, error: "Route not found" });
+});
  

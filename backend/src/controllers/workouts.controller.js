@@ -1,7 +1,6 @@
 // backend/src/controllers/workouts.controller.js
 const pool = require("../db/pool");
 
-// helper: only allow certain sort columns (prevents SQL injection)
 const ALLOWED_SORTS = new Set([
   "workout_date",
   "created_at",
@@ -22,24 +21,20 @@ exports.listWorkouts = async (req, res) => {
     const order = (req.query.order || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
 
     const page = toInt(req.query.page, 1);
-
-    // cookie page size fallback (required feature)
     const cookiePageSize = toInt(req.cookies?.pageSize, 10);
     const pageSize = toInt(req.query.pageSize, cookiePageSize || 10);
 
-    // store pageSize in cookie if user passes it in query
     if (req.query.pageSize) {
       res.cookie("pageSize", String(pageSize), {
         httpOnly: false,
         sameSite: "lax",
-        maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+        maxAge: 1000 * 60 * 60 * 24 * 30,
       });
     }
 
     const safeSort = ALLOWED_SORTS.has(sort) ? sort : "workout_date";
     const offset = (page - 1) * pageSize;
 
-    // Build WHERE with $ params
     const params = [];
     let where = "";
 
@@ -49,32 +44,24 @@ exports.listWorkouts = async (req, res) => {
       where = `WHERE title ILIKE $1 OR category ILIKE $2 OR COALESCE(notes,'') ILIKE $3`;
     }
 
-    // total count
     const countSql = `SELECT COUNT(*)::int AS total FROM workouts ${where}`;
     const countResult = await pool.query(countSql, params);
     const total = countResult.rows[0]?.total ?? 0;
 
-    // page results
-    const limitParamIndex = params.length + 1;
-    const offsetParamIndex = params.length + 2;
+    const limitIdx = params.length + 1;
+    const offsetIdx = params.length + 2;
 
     const listSql = `
       SELECT *
       FROM workouts
       ${where}
       ORDER BY ${safeSort} ${order}
-      LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
+      LIMIT $${limitIdx} OFFSET $${offsetIdx}
     `;
 
     const listResult = await pool.query(listSql, [...params, pageSize, offset]);
 
-    res.json({
-      ok: true,
-      page,
-      pageSize,
-      total,
-      results: listResult.rows,
-    });
+    res.json({ ok: true, page, pageSize, total, results: listResult.rows });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -82,12 +69,11 @@ exports.listWorkouts = async (req, res) => {
 
 exports.getWorkout = async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: "Invalid id" });
 
     const result = await pool.query("SELECT * FROM workouts WHERE id = $1", [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ ok: false, error: "Not found" });
-    }
+    if (result.rows.length === 0) return res.status(404).json({ ok: false, error: "Not found" });
 
     res.json({ ok: true, workout: result.rows[0] });
   } catch (err) {
@@ -126,16 +112,15 @@ exports.createWorkout = async (req, res) => {
 
 exports.updateWorkout = async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: "Invalid id" });
+
     const { title, workout_date, category, duration_min, notes, image_url } = req.body;
 
     const existing = await pool.query("SELECT * FROM workouts WHERE id = $1", [id]);
-    if (existing.rows.length === 0) {
-      return res.status(404).json({ ok: false, error: "Not found" });
-    }
+    if (existing.rows.length === 0) return res.status(404).json({ ok: false, error: "Not found" });
 
     const w = existing.rows[0];
-
     const next = {
       title: title ?? w.title,
       workout_date: workout_date ?? w.workout_date,
@@ -170,12 +155,11 @@ exports.updateWorkout = async (req, res) => {
 
 exports.deleteWorkout = async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: "Invalid id" });
 
     const result = await pool.query("DELETE FROM workouts WHERE id = $1", [id]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ ok: false, error: "Not found" });
-    }
+    if (result.rowCount === 0) return res.status(404).json({ ok: false, error: "Not found" });
 
     res.json({ ok: true });
   } catch (err) {
@@ -185,16 +169,11 @@ exports.deleteWorkout = async (req, res) => {
 
 exports.uploadWorkoutImage = async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: "Invalid id" });
 
-    const existing = await pool.query("SELECT * FROM workouts WHERE id = $1", [id]);
-    if (existing.rows.length === 0) {
-      return res.status(404).json({ ok: false, error: "Not found" });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ ok: false, error: "No file uploaded" });
-    }
+    // multer puts file here
+    if (!req.file) return res.status(400).json({ ok: false, error: "No file uploaded" });
 
     const imageUrl = `/uploads/${req.file.filename}`;
 
@@ -202,6 +181,8 @@ exports.uploadWorkoutImage = async (req, res) => {
       "UPDATE workouts SET image_url = $1, updated_at=NOW() WHERE id = $2 RETURNING *",
       [imageUrl, id]
     );
+
+    if (result.rows.length === 0) return res.status(404).json({ ok: false, error: "Not found" });
 
     res.json({ ok: true, workout: result.rows[0] });
   } catch (err) {
@@ -211,14 +192,11 @@ exports.uploadWorkoutImage = async (req, res) => {
 
 exports.getStats = async (req, res) => {
   try {
-    // total records
     const totalResult = await pool.query("SELECT COUNT(*)::int AS total FROM workouts");
     const totalRecords = totalResult.rows[0]?.total ?? 0;
 
-    // page size from cookie (if any)
     const pageSize = toInt(req.cookies?.pageSize, 10);
 
-    // domain stats
     const statsResult = await pool.query(`
       SELECT
         COALESCE(SUM(duration_min), 0)::int AS "totalMinutes",
@@ -255,3 +233,4 @@ exports.getStats = async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 };
+

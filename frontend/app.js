@@ -9,11 +9,9 @@ const IS_LOCAL =
   window.location.hostname === "127.0.0.1" ||
   window.location.protocol === "file:";
 
-// ✅ Set your backend base URL here (Render)
-const PROD_API = "https://solo3-workout-logs-node.onrender.com";
-
-// If running locally: backend at localhost:4000
+const PROD_API = ""; // same-origin in production (custom domain OR render domain)
 const API_BASE = IS_LOCAL ? "http://localhost:4000" : PROD_API;
+
 
 // ====== GLOBAL STATE ======
 let currentPage = 1;
